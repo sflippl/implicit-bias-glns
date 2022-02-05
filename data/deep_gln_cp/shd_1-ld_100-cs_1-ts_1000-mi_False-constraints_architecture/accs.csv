@@ -1,0 +1,4 @@
+,latent_dims,shatter_dims,train_size,context_seed,data_seed,type,acc
+0,100,1,1000,1,1,train,1.0
+1,100,1,1000,1,1,val,0.8928333333333334
+2,100,1,1000,1,1,comparison,0.9086666666666666

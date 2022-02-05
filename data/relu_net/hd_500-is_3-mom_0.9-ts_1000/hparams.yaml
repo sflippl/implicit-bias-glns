@@ -1,0 +1,90 @@
+accelerator: null
+accumulate_grad_batches: null
+amp_backend: native
+amp_level: null
+auto_lr_find: false
+auto_scale_batch_size: false
+auto_select_gpus: false
+batch_size: 128
+benchmark: false
+binary_labels:
+- - 0
+  - 1
+  - 2
+  - 3
+  - 4
+- - 5
+  - 6
+  - 7
+  - 8
+  - 9
+check_val_every_n_epoch: 1
+checkpoint_callback: null
+checkpoint_path: data
+data_seed: 1
+decay_steps:
+- 200.0
+default_root_dir: null
+detect_anomaly: false
+deterministic: false
+devices: null
+enable_checkpointing: true
+enable_model_summary: true
+enable_progress_bar: true
+experiment_name: relu_net
+fast_dev_run: false
+fit_seed: 1
+flush_logs_every_n_steps: null
+gamma: 0.25
+gpus: null
+gradient_clip_algorithm: null
+gradient_clip_val: null
+hidden_dims:
+- 500
+init_seed: 3
+inp_dim: 785
+ipus: null
+limit_predict_batches: 1.0
+limit_test_batches: 1.0
+limit_train_batches: 1.0
+limit_val_batches: 1.0
+log_every_n_steps: 8
+log_gpu_memory: null
+logger: true
+lr: 0.04
+max_epochs: 400
+max_steps: -1
+max_time: null
+median_init: false
+min_epochs: null
+min_steps: null
+momentum: 0.9
+move_metrics_to_cpu: false
+multiple_trainloader_mode: max_size_cycle
+no_bias: true
+num_nodes: 1
+num_processes: 1
+num_sanity_val_steps: 2
+overfit_batches: 0.0
+plugins: null
+precision: 32
+prepare_data_per_node: null
+process_position: 0
+profiler: null
+progress_bar_refresh_rate: null
+reload_dataloaders_every_epoch: false
+reload_dataloaders_every_n_epochs: 0
+replace_sampler_ddp: true
+resume_from_checkpoint: null
+save_dir: data
+stochastic_weight_avg: false
+strategy: null
+sync_batchnorm: false
+terminate_on_nan: null
+tpu_cores: null
+track_grad_norm: -1
+train_size: 1000
+val_check_interval: 1.0
+version: hd_500-is_3-mom_0.9-ts_1000
+weights_save_path: null
+weights_summary: top

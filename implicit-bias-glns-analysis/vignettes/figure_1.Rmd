@@ -1,0 +1,176 @@
+---
+title: "Figure 1"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Figure 2}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+devtools::load_all()
+library(tidyverse)
+library(png)
+library(patchwork)
+```
+
+```{r}
+draw_hyperplane <- function(plot, beta, x_lims, y_lims, color = 'black', n_intervals = 10, ...) {
+  if(beta[2]==0){
+    if(beta[1]==0){
+      return(plot)
+    }
+    intercept <- -beta[3]/beta[1]
+    if((intercept >= x_lims[1]) && (intercept <= x_lims[2])){
+      return(plot+annotate('vline', xintercept=-beta[3]/beta[1], ...))
+    }
+    return(plot)
+  }
+  slope <- -beta[1]/beta[2]
+  intercept <- -beta[3]/beta[2]
+  x_vals <- x_lims
+  if(slope==0) {
+    if((intercept >= y_lims[1]) && (intercept <= y_lims[2])){
+      return(plot+annotate('hline', yintercept=-beta[3]/beta[1], ...))
+    }
+    return(plot)
+  }
+  y_vals <- intercept + slope*x_vals
+  if(slope>0){
+    y_vals <- c(max(y_vals[1], y_lims[1]), min(y_vals[2], y_lims[2]))
+  }
+  else{
+    y_vals <- c(max(y_vals[2], y_lims[1]), min(y_vals[1], y_lims[2]))
+  }
+  x_vals <- (y_vals-intercept)/slope
+  if((x_vals[1] >= x_lims[1]) && (x_vals[2] <= x_lims[2]) && (x_vals[2] >= x_lims[1]) && (x_vals[1] <= x_lims[2])) {
+    if(length(color) == 1){
+      return(
+        plot +
+          annotate('path', x_vals, y_vals, color = color, ...)
+      )
+    }
+    x <- seq(x_vals[1], x_vals[2], length.out = n_intervals*length(color))
+    y <- seq(y_vals[1], y_vals[2], length.out = n_intervals*length(color))
+    df = tibble(
+      x_ = x[1:(length(x)-1)], y_ = y[1:(length(y)-1)], xend = x[2:(length(x))], yend = y[2:(length(x))],
+      color_ = rep(color, n_intervals)[1:(length(y)-1)]
+    )
+    return(
+      plot +
+        geom_segment(mapping = aes(x = x_, y = y_, xend = xend, yend = yend, color = color_), data = df, show.legend = FALSE, ...) +
+        scale_color_manual(values = color %>% magrittr::set_names(color))
+    )
+  }
+  return(plot)
+}
+```
+
+
+```{r}
+df <-
+  tibble(
+    x1 = c(0.2, 0.4, 0.8, 0.6, -0.3, -0.5, -0.8, -0.6, 0.3, 0.3, 0.9, 0.8, -0.2, -0.1, -0.6, -0.95),
+    x2 = c(0.3, 0.1, 0.9, 0.9, 0.1, 0.25, 0.75, 0.8, -0.3, -0.25, -0.85, -0.6, -0.2, -0.35, -0.9, -0.65),
+    class = rep(c('0', '0', '1', '1'), 4)
+  )
+```
+
+```{r}
+p_a <-
+  ggplot(mapping = aes(x1, x2)) +
+  geom_point(data = df %>% filter(class == '0'), color = 'grey60') +
+  geom_point(data = df %>% filter(class == '1'), color = 'grey30') +
+  xlim(-1, 1) +
+  ylim(-1, 1) +
+  labs(x = '', y = '') +
+  theme_bw() +
+  coord_fixed(xlim = c(-1, 1), ylim = c(-1, 1)) +
+  scale_x_continuous(breaks = c(), minor_breaks = seq(-1., 1., 0.5)) +
+  scale_y_continuous(breaks = c(), minor_breaks = seq(-1., 1., 0.5))
+p_a
+```
+
+```{r}
+zeta_11 <- c(-1., 0., -0.5)
+zeta_21 <- c(0. -1., -0.5)
+zeta_12 <- c(1., 0., -0.5)
+zeta_22 <- c(0., 1., -0.5)
+p_b <-
+  p_a +
+  geom_vline(xintercept = 0., color = 'grey20', linetype = 'dashed') +
+  geom_vline(xintercept = 0.5, color = 'blue') +
+  geom_vline(xintercept = -0.5, color = 'turquoise') +
+  annotate(geom = 'label', x = c(-0.5, 0.5), y = c(0., 0.),
+           label = c('1', '2'))
+p_b
+```
+
+```{r}
+p_c <-
+  p_a +
+  geom_hline(yintercept = 0., color = 'grey20', linetype = 'dashed') +
+  geom_hline(yintercept = 0.5, color = 'orange') +
+  geom_hline(yintercept = -0.5, color = 'red') +
+  annotate(geom = 'label', x = c(0., 0.), y = c(-0.5, 0.5),
+           label = c('1', '2'))
+p_c
+```
+
+
+```{r}
+beta_11 <- c(-1., -1., -1.)
+beta_12 <- c(-1., 1., -1.)
+beta_21 <- c(1., -1., -1.)
+beta_22 <- c(1., 1., -1.)
+p_d <-
+  ((p_a +
+  geom_hline(yintercept = 0., color='grey20', linetype = 'dashed') +
+  geom_vline(xintercept = 0., color = 'grey20', linetype = 'dashed')) %>%
+  draw_hyperplane(beta_11, c(-1, 0), c(-1, 0), color = c('blue', 'red'), n_intervals = 5) %>%
+  draw_hyperplane(beta_12, c(-1, 0), c(0, 1), color = c('blue', 'pink'), n_intervals = 5) %>%
+  draw_hyperplane(beta_21, c(0, 1), c(-1, 0), color = c('cyan', 'red'), n_intervals = 5) %>%
+  draw_hyperplane(beta_22, c(0, 1), c(0, 1), color = c('cyan', 'pink'), n_intervals = 5) +
+  annotate(geom = 'label', x = c(0.5, 0.5, -0.5, -0.5), y = c(0.5, -0.5, 0.5, -0.5),
+           label = c('22', '21', '12', '11'))) +
+  scale_color_manual(values = c(blue = 'blue', red = 'red', pink = 'orange', cyan = 'turquoise'))
+p_d
+```
+
+```{r}
+p_up_2 <-
+  p_a +
+  annotate('rect', xmin = 0., xmax = 1.2, ymin = -1.2, ymax = 1.2, fill = 'blue', alpha = 0.2) +
+  annotate('rect', xmin = -1.2, xmax = 0., ymin = -1.2, ymax = 1.2, fill = 'turquoise', alpha = 0.2) +
+  geom_point(data = df %>% filter(class == '0'), color = 'grey60') +
+  geom_point(data = df %>% filter(class == '1'), color = 'grey30')
+p_up_2
+```
+
+```{r}
+p_up_3 <- 
+  p_a +
+  annotate('rect', xmin = -1.2, xmax = 1.2, ymin = -1.2, ymax = 0., fill = 'red', alpha = 0.2) +
+  annotate('rect', xmin = -1.2, xmax = 1.2, ymin = 0., ymax = 1.2, fill = 'orange', alpha = 0.2) +
+  geom_point(data = df %>% filter(class == '0'), color = 'grey60') +
+  geom_point(data = df %>% filter(class == '1'), color = 'grey30')
+p_up_3
+```
+
+
+```{r}
+(((wrap_elements(readPNG('../figures/fig_1_a.png', native = TRUE)) / (p_up_2+p_up_3)) |
+  p_a | (p_b/p_c) | p_d) + plot_layout(widths = c(2., 1., 1., 1.), nrow = 1, ncol = 4) +
+  plot_annotation(tag_levels = 'a')) &
+  theme(plot.tag = element_text(face = 'bold'))
+ggsave('../figures/fig_1.pdf', width = 14, height = 4)
+ggsave('../figures/fig_1.png', width = 14, height = 4)
+```
+

@@ -1,0 +1,4 @@
+,model,train_size,context_seed,data_seed,objective,type,acc
+0,data/relu_net/hd_50-is_2-mom_0.0-ts_1000/last.ckpt,1000,1,1,random_contexts,train,1.0
+1,data/relu_net/hd_50-is_2-mom_0.0-ts_1000/last.ckpt,1000,1,1,random_contexts,val,0.8985833333333333
+2,data/relu_net/hd_50-is_2-mom_0.0-ts_1000/last.ckpt,1000,1,1,random_contexts,comparison,0.9178333333333333

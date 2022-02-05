@@ -1,0 +1,4 @@
+,model,train_size,context_seed,data_seed,objective,type,acc
+0,data/relu_net/hd_10-is_2-mom_0.0-ts_2000/last.ckpt,2000,1,1,gates_only,train,
+1,data/relu_net/hd_10-is_2-mom_0.0-ts_2000/last.ckpt,2000,1,1,gates_only,val,
+2,data/relu_net/hd_10-is_2-mom_0.0-ts_2000/last.ckpt,2000,1,1,gates_only,comparison,

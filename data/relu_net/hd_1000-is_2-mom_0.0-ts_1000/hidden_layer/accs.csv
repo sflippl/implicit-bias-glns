@@ -1,0 +1,4 @@
+,model,train_size,context_seed,data_seed,objective,type,acc
+0,data/relu_net/hd_1000-is_2-mom_0.0-ts_1000/last.ckpt,1000,1,1,hidden_layer,train,1.0
+1,data/relu_net/hd_1000-is_2-mom_0.0-ts_1000/last.ckpt,1000,1,1,hidden_layer,val,0.9228333333333333
+2,data/relu_net/hd_1000-is_2-mom_0.0-ts_1000/last.ckpt,1000,1,1,hidden_layer,comparison,0.9889166666666667

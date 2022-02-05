@@ -1,0 +1,4 @@
+,model,train_size,context_seed,data_seed,objective,type,acc
+0,data/relu_net/hd_20-is_3-mom_0.0-ts_2000/last.ckpt,2000,1,1,random_contexts,train,1.0
+1,data/relu_net/hd_20-is_3-mom_0.0-ts_2000/last.ckpt,2000,1,1,random_contexts,val,0.9004166666666666
+2,data/relu_net/hd_20-is_3-mom_0.0-ts_2000/last.ckpt,2000,1,1,random_contexts,comparison,0.9109166666666667

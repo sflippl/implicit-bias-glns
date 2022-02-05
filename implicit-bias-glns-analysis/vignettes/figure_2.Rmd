@@ -1,0 +1,358 @@
+---
+title: "Figure 2"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Figure 2}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+devtools::load_all()
+library(tidyverse)
+library(patchwork)
+mytheme <-
+  theme_bw() +
+  theme(plot.tag = element_text(face = 'bold'))
+```
+
+```{r}
+best_networks <-
+  bind_rows(
+    shallow_gln_last %>%
+      filter(metric == 'error', split == 'val') %>%
+      group_by(context_seed, train_size) %>%
+      summarise(error_rate = min(value)) %>%
+      ungroup() %>%
+      select(train_size, error_rate) %>%
+      mutate(type = 'last', name = 'Shallow GLN'),
+    shallow_gln_best %>%
+      filter(metric == 'error', split == 'val') %>%
+      group_by(context_seed, train_size) %>%
+      summarise(error_rate = min(value)) %>%
+      ungroup() %>%
+      select(train_size, error_rate) %>%
+      mutate(type = 'best', name = 'Shallow GLN'),
+    shallow_gln_cp %>%
+      filter(type == 'val') %>%
+      group_by(context_seed, train_size) %>%
+      summarise(error_rate = min(error)) %>%
+      ungroup() %>%
+      select(train_size, error_rate) %>%
+      mutate(type = 'infinite_time', name = 'Shallow GLN'),
+    deep_gln_last %>%
+      filter(metric == 'error', split == 'val', latent_dims <= 100) %>%
+      group_by(context_seed, train_size) %>%
+      summarise(error_rate = min(value)) %>%
+      ungroup() %>%
+      select(train_size, error_rate) %>%
+      mutate(type = 'last', name = 'Deep GLN\n(GLN Norm)'),
+    deep_gln_best %>%
+      filter(metric == 'error', split == 'val', latent_dims <= 100) %>%
+      group_by(context_seed, train_size) %>%
+      summarise(error_rate = min(value)) %>%
+      ungroup() %>%
+      select(train_size, error_rate) %>%
+      mutate(type = 'best', name = 'Deep GLN\n(GLN Norm)'),
+    deep_gln_cp %>%
+      filter(type == 'val', constraints == 'implicit_bias') %>%
+      group_by(context_seed, train_size) %>%
+      summarise(error_rate = min(error)) %>%
+      ungroup() %>%
+      select(train_size, error_rate) %>%
+      mutate(type = 'infinite_time', name = 'Deep GLN\n(GLN Norm)'),
+    deep_gln_cp %>%
+      filter(type == 'val', constraints == 'architecture', latent_dims <= 100) %>%
+      group_by(context_seed, train_size) %>%
+      summarise(error_rate = min(error)) %>%
+      ungroup() %>%
+      select(train_size, error_rate) %>%
+      mutate(type = 'infinite_time', name = 'Deep GLN\n(L2 Norm)')
+  ) %>%
+  mutate(
+    type = factor(type, levels = c('best', 'last', 'infinite_time')),
+    name = factor(name, levels = c('Shallow GLN', 'Deep GLN\n(GLN Norm)', 'Deep GLN\n(L2 Norm)'))
+  )
+```
+```{r}
+p_c <- 
+  best_networks %>%
+  filter(type != 'best') %>%
+  mutate(
+    train_size = factor(train_size, levels = c('500', '1000', '2000'))
+  ) %>%
+  ggplot(aes(name, error_rate, color = type, group = paste(type, train_size), linetype = train_size, shape = train_size)) +
+  stat_summary(geom = 'linerange', show.legend = FALSE, linetype = 'solid') +
+  stat_summary(geom = 'point') +
+  stat_summary(geom = 'line') +
+  #facet_wrap(~train_size, ncol = 1, labeller = as_labeller(function(string) paste0('Training Size: ', string))) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  labs(x = 'Network Type', y = 'Error on MNIST', color = 'Training', fill = 'Training') +
+  scale_linetype_manual(values = c(
+    `500` = 'dotted',
+    `1000` = 'dashed',
+    `2000` = 'solid'
+  ), name = 'Training Size') +
+  labs(shape = 'Training Size') +
+  mytheme +
+  scale_color_manual(labels = c(last = 'GD', infinite_time = 'SVM'), values = c(last = 'darkgreen', infinite_time = 'darkorange')) +
+  theme(legend.position = 'top')
+p_c
+```
+
+```{r}
+p_d <- 
+  bind_rows(
+  deep_gln_last %>%
+    filter(median_init, metric == 'error', split == 'val', momentum == 0.0, latent_dims <= 100) %>%
+    rename(error_rate = value) %>%
+    select(-median_init, -metric, -context_seed, -split) %>%
+    mutate(network = 'last'),
+  deep_gln_cp %>%
+    filter(median_init == 'True', type == 'val') %>%
+    rename(error_rate = error) %>%
+    select(-median_init, -context_seed, -type, -acc) %>%
+    mutate(network = paste0('infinite_time (', constraints, ')'))
+) %>%
+  filter(shatter_dims == 1) %>%
+  mutate(
+    train_size = factor(train_size, levels = c('500', '1000', '2000')),
+    network = factor(network, levels = c('last', 'infinite_time (implicit_bias)', 'infinite_time (architecture)'))
+  ) %>%
+  ggplot(aes(latent_dims, error_rate, color = network, linetype = train_size, shape = train_size)) +
+  stat_summary(geom = 'linerange', show.legend = FALSE, linetype = 'solid') +
+  stat_summary(geom = 'point') +
+  stat_summary(geom = 'line') +
+  #facet_wrap(~train_size, ncol = 1, labeller = as_labeller(function(string) paste0('Training size: ', string))) +
+  scale_x_log10(name = 'Nr. of Hidden Units') +
+  scale_color_viridis_d(
+    option = 'plasma', 
+    labels = c(last = 'GD-GLN', `infinite_time (architecture)` = 'SVM-L2', `infinite_time (implicit_bias)` = 'SVM-GLN'),
+    name = 'Type of Deep GLN',
+    end = 0.6
+  ) +
+  scale_linetype_manual(values = c(
+    `500` = 'dotted',
+    `1000` = 'dashed',
+    `2000` = 'solid'
+  ), name = 'Training Size') +
+  labs(shape = 'Training Size') +
+  scale_y_continuous(labels = scales::percent_format(), name = 'Error on MNIST') +
+  mytheme
+p_d
+```
+
+```{r}
+p_a <-
+  deep_gln_cp %>%
+  filter(type == 'val') %>%
+  rename(svm_error = error) %>%
+  mutate(context_seed = as.numeric(context_seed)) %>%
+  inner_join(
+    deep_gln_last %>%
+      filter(momentum==0., split == 'val', metric == 'error') %>%
+      select(-momentum, -split, -epoch) %>%
+      rename(error = value) %>%
+      mutate(
+        median_init = if_else(median_init, 'True', 'False')
+      ),
+    by = c('shatter_dims', 'train_size', 'context_seed', 'median_init', 'latent_dims')
+  ) %>%
+  filter(median_init == 'True') %>%
+  mutate(
+    network = paste0('infinite_time (', constraints, ')'),
+    network = factor(network, levels = c('infinite_time (architecture)', 'infinite_time (implicit_bias)'))
+  ) %>%
+  ggplot(aes(error, svm_error, color = network)) +
+  geom_point(aes(group = paste(context_seed, train_size)), show.legend = FALSE) +
+  geom_abline(slope = 1., intercept = 0., color = 'grey', size = 1) +
+  scale_color_viridis_d(
+    option = 'plasma', 
+    begin = 0.3,
+    end = 0.6
+  ) +
+  scale_x_continuous(labels = scales::percent_format(), breaks = c(0.1, 0.15), name = 'GD-GLN Error') +
+  scale_y_continuous(labels = scales::percent_format(), name = 'SVM Error') +
+  coord_fixed() +
+  mytheme
+p_a
+```
+
+
+```{r}
+p_b <-
+  deep_gln_cp %>%
+  filter(type == 'comparison') %>%
+  rename(inconsistency = error) %>%
+  mutate(context_seed = as.numeric(context_seed)) %>%
+  inner_join(
+    deep_gln_last %>%
+      filter(momentum==0., split == 'val', metric == 'error') %>%
+      select(-momentum, -split, -epoch) %>%
+      rename(error = value) %>%
+      mutate(
+        median_init = if_else(median_init, 'True', 'False')
+      ),
+    by = c('shatter_dims', 'train_size', 'context_seed', 'median_init', 'latent_dims')
+  ) %>%
+  filter(median_init == 'True') %>%
+  mutate(
+    network = paste0('infinite_time (', constraints, ')'),
+    network = factor(network, levels = c('infinite_time (architecture)', 'infinite_time (implicit_bias)'))
+  ) %>%
+  ggplot(aes(error, inconsistency, color = network)) +
+  geom_point(aes(group = paste(context_seed, train_size)), show.legend = FALSE) +
+  geom_function(fun = function(p) 1-(p*p+(1-p)*(1-p)), color = 'grey', size = 1) +
+  scale_color_viridis_d(
+    option = 'plasma', 
+    begin = 0.3,
+    end = 0.6
+  ) +
+  scale_x_continuous(labels = scales::percent_format(), name = 'GD-GLN Error',
+                     breaks = c(0.1, 0.14, 0.18)) +
+  scale_y_continuous(labels = scales::percent_format(), name = 'Inconsistency') +
+  mytheme
+p_b
+```
+
+```{r}
+p_a + p_b + p_c + p_d +
+  plot_layout(nrow = 1, guides = 'collect') +
+  plot_annotation(tag_levels = 'a') &
+  theme(legend.position = 'right', legend.direction = 'vertical')
+ggsave('../figures/fig_2.pdf', width = 14, height = 4)
+ggsave('../figures/fig_2.png', width = 14, height = 4)
+```
+```{r}
+p_supp_c <- 
+  bind_rows(
+  deep_gln_last %>%
+    filter(metric == 'error', split == 'val', momentum == 0.0, latent_dims <= 100) %>%
+    rename(error_rate = value) %>%
+    select(-metric, -context_seed, -split) %>%
+    mutate(network = 'last', median_init = if_else(median_init, 'True', 'False')),
+  deep_gln_cp %>%
+    filter(type == 'val') %>%
+    rename(error_rate = error) %>%
+    select(-context_seed, -type, -acc) %>%
+    mutate(network = paste0('infinite_time (', constraints, ')'))
+) %>%
+  mutate(
+    train_size = factor(train_size, levels = c('500', '1000', '2000')),
+    network = factor(network, levels = c('last', 'infinite_time (implicit_bias)', 'infinite_time (architecture)')),
+    median_init = if_else(median_init == 'True', 'With MI', 'Without MI'),
+    shatter_dims = if_else(shatter_dims == '1', '2 Contexts per Unit', '4 Contexts per Unit')
+  ) %>%
+  ggplot(aes(latent_dims, error_rate, color = network, linetype = train_size, shape = train_size)) +
+  stat_summary(geom = 'linerange', show.legend = FALSE, linetype = 'solid') +
+  stat_summary(geom = 'point') +
+  stat_summary(geom = 'line') +
+  #facet_wrap(~train_size, ncol = 1, labeller = as_labeller(function(string) paste0('Training size: ', string))) +
+  scale_x_log10(name = 'Nr. of Hidden Units') +
+  scale_color_viridis_d(
+    option = 'plasma', 
+    labels = c(last = 'GD-GLN', `infinite_time (architecture)` = 'SVM-L2', `infinite_time (implicit_bias)` = 'SVM-GLN'),
+    name = 'Type of Deep GLN',
+    end = 0.6
+  ) +
+  scale_linetype_manual(values = c(
+    `500` = 'dotted',
+    `1000` = 'dashed',
+    `2000` = 'solid'
+  ), name = 'Training Size') +
+  labs(shape = 'Training Size') +
+  scale_y_continuous(labels = scales::percent_format(), name = 'Error on MNIST') +
+  facet_grid(median_init~shatter_dims) +
+  mytheme
+p_supp_c
+```
+
+```{r}
+p_supp_a <-
+  deep_gln_cp %>%
+  filter(type == 'val') %>%
+  rename(svm_error = error) %>%
+  mutate(context_seed = as.numeric(context_seed)) %>%
+  inner_join(
+    deep_gln_last %>%
+      filter(momentum==0., split == 'val', metric == 'error') %>%
+      select(-momentum, -split, -epoch) %>%
+      rename(error = value) %>%
+      mutate(
+        median_init = if_else(median_init, 'True', 'False')
+      ),
+    by = c('shatter_dims', 'train_size', 'context_seed', 'median_init', 'latent_dims')
+  ) %>%
+  mutate(
+    network = paste0('infinite_time (', constraints, ')'),
+    network = factor(network, levels = c('infinite_time (architecture)', 'infinite_time (implicit_bias)')),
+    median_init = if_else(median_init == 'True', 'With MI', 'Without MI')
+  ) %>%
+  ggplot(aes(error, svm_error, color = network)) +
+  geom_point(aes(group = paste(context_seed, train_size)), show.legend = FALSE) +
+  geom_abline(slope = 1., intercept = 0., color = 'grey', size = 1) +
+  scale_color_viridis_d(
+    option = 'plasma', 
+    begin = 0.3,
+    end = 0.6
+  ) +
+  scale_x_continuous(labels = scales::percent_format(), breaks = c(0.1, 0.15), name = 'GD-GLN Error') +
+  scale_y_continuous(labels = scales::percent_format(), name = 'SVM Error') +
+  coord_fixed() +
+  facet_grid(rows = vars(median_init)) +
+  mytheme
+p_supp_a
+```
+
+```{r}
+p_supp_b <-
+  deep_gln_cp %>%
+  filter(type == 'comparison') %>%
+  rename(inconsistency = error) %>%
+  mutate(context_seed = as.numeric(context_seed)) %>%
+  inner_join(
+    deep_gln_last %>%
+      filter(momentum==0., split == 'val', metric == 'error') %>%
+      select(-momentum, -split, -epoch) %>%
+      rename(error = value) %>%
+      mutate(
+        median_init = if_else(median_init, 'True', 'False')
+      ),
+    by = c('shatter_dims', 'train_size', 'context_seed', 'median_init', 'latent_dims')
+  ) %>%
+  mutate(
+    network = paste0('infinite_time (', constraints, ')'),
+    network = factor(network, levels = c('infinite_time (architecture)', 'infinite_time (implicit_bias)')),
+    median_init = if_else(median_init == 'True', 'With MI', 'Without MI')
+  ) %>%
+  ggplot(aes(error, inconsistency, color = network)) +
+  geom_point(aes(group = paste(context_seed, train_size)), show.legend = FALSE) +
+  geom_function(fun = function(p) 1-(p*p+(1-p)*(1-p)), color = 'grey', size = 1) +
+  scale_color_viridis_d(
+    option = 'plasma', 
+    begin = 0.3,
+    end = 0.6
+  ) +
+  scale_x_continuous(labels = scales::percent_format(), name = 'GD-GLN Error',
+                     breaks = c(0.1, 0.14, 0.18)) +
+  scale_y_continuous(labels = scales::percent_format(), name = 'Inconsistency') +
+  facet_grid(rows = vars(median_init)) +
+  mytheme
+p_supp_b
+```
+
+```{r}
+p_supp_a + p_supp_b + p_supp_c +
+  #plot_layout(nrow = 1, guides = 'collect') +
+  plot_annotation(tag_levels = 'a') &
+  theme(legend.position = 'right', legend.direction = 'vertical')
+ggsave('../figures/fig_2_supp.pdf', width = 14, height = 6)
+```
+

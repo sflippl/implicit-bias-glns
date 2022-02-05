@@ -1,0 +1,16 @@
+Package: glnsanalysis
+Type: Package
+Title: Analysis Accompanying "The Implicit Bias of Gradient Descent on Generalized Gated Linear Networks"
+Version: 0.1.0
+License: MIT
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.2
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Depends: 
+    R (>= 2.10)
+Imports: 
+    magrittr
